@@ -17,71 +17,145 @@ Food :: struct {
 	pos: rl.Vector2,
 }
 
+Snake :: struct {
+    body: [dynamic]rl.Vector2,
+    direction: rl.Vector2,
+    last_dir: Direction,
+}
+
+game_over: bool = false
+
 food: Food
-
 food_exists: bool = false
-
-pos := rl.Vector2{f32(rl.GetScreenWidth() / 2), f32(rl.GetScreenHeight() / 2)}
-direction := rl.Vector2{1, 0}
-block_speed: f32 = 3.2
-last_dir: Direction = .Right
+snake: Snake
+block_size: f32 = 15
+block_speed: f32 = 5
 current_score := 0
 
 main :: proc() {
-	rl.InitWindow(900, 700, "Snek")
-	rl.SetTargetFPS(60)
+    rl.InitWindow(900, 700, "Snek")
+    rl.SetTargetFPS(60)
 
-	pos := rl.Vector2{f32(rl.GetScreenWidth() / 2), f32(rl.GetScreenHeight() / 2)}
+    init_snake()
 
-	for !rl.WindowShouldClose() {
-		rl.ClearBackground(rl.BLACK)
+    for !rl.WindowShouldClose() {
+        rl.BeginDrawing()
+        rl.ClearBackground(rl.BLACK)
 
-		if !food_exists {
-			food.pos = {
-				rand.float32() * f32(rl.GetScreenWidth()),
-				rand.float32() * f32(rl.GetScreenHeight()),
-			}
-			food_exists = true
-		}
+        if game_over && rl.IsKeyPressed(.R) {
+            reset_game()
+        }
 
-		rl.DrawRectangle(i32(food.pos.x), i32(food.pos.y), 10, 10, rl.WHITE)
+        update_game()
+        draw_game()
 
-		new_direction := get_input_direction(&last_dir)
-		if new_direction.x != 0 || new_direction.y != 0 {
-			direction = new_direction
-		}
+        rl.EndDrawing()
+    }
 
-		pos += direction * block_speed
-		wrap_check(&pos)
-		check_food_collision(&pos, &food.pos)  // Add this line
+    rl.CloseWindow()
+}
 
+init_snake :: proc() {
+    snake.body = make([dynamic]rl.Vector2)
+    append(&snake.body, rl.Vector2{f32(rl.GetScreenWidth() / 2), f32(rl.GetScreenHeight() / 2)})
+    snake.direction = {1, 0}
+    snake.last_dir = .Right
+}
 
-		rl.DrawRectangle(i32(pos.x), i32(pos.y), 10, 10, rl.GREEN)
+insert_at_front :: proc(arr: ^[dynamic]rl.Vector2, value: rl.Vector2) {
+    append(arr, rl.Vector2{}) // Add a dummy element
+    copy(arr[1:], arr[0:])    // Shift elements
+    arr[0] = value            // Set the first element
+}
 
-		rl.EndDrawing()
-	}
+update_game :: proc() {
+	if game_over {
+        return
+    }
 
-	rl.CloseWindow()
+    if rl.IsKeyPressed(.G) {
+    }
+
+    if !food_exists {
+        food.pos = {
+            rand.float32() * f32(rl.GetScreenWidth()),
+            rand.float32() * f32(rl.GetScreenHeight()),
+        }
+        food_exists = true
+    }
+
+    new_direction := get_input_direction(&snake.last_dir)
+    if new_direction.x != 0 || new_direction.y != 0 {
+        snake.direction = new_direction
+    }
+
+    new_head := snake.body[0] + snake.direction * block_speed
+    wrap_check(&new_head)
+
+    insert_at_front(&snake.body, new_head)
+    if check_self_collision(&snake) {
+        game_over = true
+        return
+    }
+
+    if len(snake.body) > current_score + 1 {
+        pop(&snake.body)
+    }
+
+    check_food_collision(&snake.body[0], &food.pos)
+}
+
+draw_game :: proc() {
+    rl.DrawRectangle(i32(food.pos.x), i32(food.pos.y), i32(block_size), i32(block_size), rl.WHITE)
+
+    for segment in snake.body {
+        rl.DrawRectangle(i32(segment.x), i32(segment.y), i32(block_size), i32(block_size), rl.GREEN)
+    }
+
+    if game_over {
+        game_over_text := "Game Over! Press R to restart"
+        text_width := rl.MeasureText(strings.clone_to_cstring(game_over_text), 40)
+        rl.DrawText(
+            strings.clone_to_cstring(game_over_text),
+            i32(rl.GetScreenWidth()/2 - text_width/2),
+            i32(rl.GetScreenHeight()/2 - 20),
+            40,
+            rl.RED,
+        )
+    }
+
+    score_text := fmt.tprintf("Score: %d", current_score)
+    rl.DrawText(strings.clone_to_cstring(score_text), 10, 10, 20, rl.GRAY)
+}
+
+check_self_collision :: proc(snake: ^Snake) -> bool {
+    head := snake.body[0]
+    for i in 1..<len(snake.body) {
+        if rl.Vector2Equals(head, snake.body[i]) {
+            return true
+        }
+    }
+    return false
 }
 
 get_input_direction :: proc(last_direction: ^Direction) -> rl.Vector2 {
-	direction := rl.Vector2{}
+    direction := rl.Vector2{}
 
-	if rl.IsKeyPressed(.H) && last_direction^ != .Right {
-		direction = {-1, 0}
-		last_dir = .Left
-	} else if rl.IsKeyPressed(.L) && last_direction^ != .Left {
-		direction = {1, 0}
-		last_dir = .Right
-	} else if rl.IsKeyPressed(.K) && last_direction^ != .Down {
-		direction = {0, -1}
-		last_dir = .Up
-	} else if rl.IsKeyPressed(.J) && last_direction^ != .Up {
-		direction = {0, 1}
-		last_dir = .Down
-	}
+    if rl.IsKeyPressed(.H) && last_direction^ != .Right {
+        direction = {-1, 0}
+        snake.last_dir = .Left
+    } else if rl.IsKeyPressed(.L) && last_direction^ != .Left {
+        direction = {1, 0}
+        snake.last_dir = .Right
+    } else if rl.IsKeyPressed(.K) && last_direction^ != .Down {
+        direction = {0, -1}
+        snake.last_dir = .Up
+    } else if rl.IsKeyPressed(.J) && last_direction^ != .Up {
+        direction = {0, 1}
+        snake.last_dir = .Down
+    }
 
-	return rl.Vector2Normalize(direction)
+    return rl.Vector2Normalize(direction)
 }
 
 wrap_check :: proc(position: ^rl.Vector2) {
@@ -96,18 +170,18 @@ wrap_check :: proc(position: ^rl.Vector2) {
 	}
 }
 
-check_food_collision :: proc(snake_pos: ^rl.Vector2, food_pos: ^rl.Vector2) {
+check_food_collision :: proc(snake_head: ^rl.Vector2, food_pos: ^rl.Vector2) {
     snake_rect := rl.Rectangle{
-        x = snake_pos.x,
-        y = snake_pos.y,
-        width = 10,  // Assuming the snake block is 10x10
-        height = 10,
+        x = snake_head.x,
+        y = snake_head.y,
+        width = block_size,
+        height = block_size,
     }
     food_rect := rl.Rectangle{
         x = food_pos.x,
         y = food_pos.y,
-        width = 10,  // Assuming the food block is 10x10
-        height = 10,
+        width = block_size,
+        height = block_size,
     }
 
     if rl.CheckCollisionRecs(snake_rect, food_rect) {
@@ -117,9 +191,13 @@ check_food_collision :: proc(snake_pos: ^rl.Vector2, food_pos: ^rl.Vector2) {
 }
 
 consume_food :: proc() {
-	food_exists = false  // This will cause a new food to spawn in the next frame
+	food_exists = false
 }
 
-grow_snake :: proc() {
-
+reset_game :: proc() {
+    clear(&snake.body)
+    init_snake()
+    current_score = 0
+    food_exists = false
+    game_over = false
 }
