@@ -1,19 +1,30 @@
 package main
 
 import "core:fmt"
+import "core:math"
+import "core:math/rand"
 import "core:strings"
 import rl "vendor:raylib"
 
 Direction :: enum {
-	None,
 	Left,
 	Right,
 	Up,
 	Down,
 }
 
-last_dir: Direction = .Left
+Food :: struct {
+	pos: rl.Vector2,
+}
 
+food: Food
+
+food_exists: bool = false
+
+pos := rl.Vector2{f32(rl.GetScreenWidth() / 2), f32(rl.GetScreenHeight() / 2)}
+direction := rl.Vector2{1, 0}
+block_speed: f32 = 3.2
+last_dir: Direction = .Right
 current_score := 0
 
 main :: proc() {
@@ -22,32 +33,30 @@ main :: proc() {
 
 	pos := rl.Vector2{f32(rl.GetScreenWidth() / 2), f32(rl.GetScreenHeight() / 2)}
 
-	block_speed: f32 = 5
-
 	for !rl.WindowShouldClose() {
 		rl.ClearBackground(rl.BLACK)
 
-		time_str := fmt.tprintf("%.2f", rl.GetTime())
-		score := fmt.tprintf("Score: %d", current_score)
+		if !food_exists {
+			food.pos = {
+				rand.float32() * f32(rl.GetScreenWidth()),
+				rand.float32() * f32(rl.GetScreenHeight()),
+			}
+			food_exists = true
+		}
 
-		direction := get_input_direction(&last_dir)
-		move_2d(&pos, direction, block_speed)
+		rl.DrawRectangle(i32(food.pos.x), i32(food.pos.y), 10, 10, rl.WHITE)
+
+		new_direction := get_input_direction(&last_dir)
+		if new_direction.x != 0 || new_direction.y != 0 {
+			direction = new_direction
+		}
+
+		pos += direction * block_speed
 		wrap_check(&pos)
+		check_food_collision(&pos, &food.pos)  // Add this line
+
 
 		rl.DrawRectangle(i32(pos.x), i32(pos.y), 10, 10, rl.GREEN)
-
-		rl.DrawText(direction_to_string(last_dir), 1, 0, 20, rl.RAYWHITE)
-		rl.DrawText(
-			strings.clone_to_cstring(time_str),
-			rl.GetScreenWidth() / 2 - 15,
-			0,
-			20,
-			rl.RAYWHITE,
-		)
-		rl.DrawText(strings.clone_to_cstring(score), rl.GetScreenWidth() - 100, 0, 20, rl.WHITE)
-
-		print_pos := fmt.tprintf("(%.2f, %.2f)", pos.x, pos.y)
-		rl.DrawText(strings.clone_to_cstring(print_pos), 0, 120, 20, rl.WHITE)
 
 		rl.EndDrawing()
 	}
@@ -55,59 +64,24 @@ main :: proc() {
 	rl.CloseWindow()
 }
 
-move_2d :: proc(character_pos: ^rl.Vector2, direction: rl.Vector2, speed: f32) {
-	character_pos^ += direction * speed
-}
-
-get_input_direction :: proc(last_direction : ^Direction) -> rl.Vector2 {
+get_input_direction :: proc(last_direction: ^Direction) -> rl.Vector2 {
 	direction := rl.Vector2{}
 
-	if rl.IsKeyDown(.H) {
-		if last_direction^ == .Right {
-			return direction
-		}
-		direction.x -= 1
+	if rl.IsKeyPressed(.H) && last_direction^ != .Right {
+		direction = {-1, 0}
 		last_dir = .Left
-	}
-	if rl.IsKeyDown(.L) {
-		if last_direction^ == .Left {
-			return direction
-		}
-		direction.x += 1
+	} else if rl.IsKeyPressed(.L) && last_direction^ != .Left {
+		direction = {1, 0}
 		last_dir = .Right
-	}
-	if rl.IsKeyDown(.K) {
-		if last_direction^ == .Down {
-			return direction
-		}
-		direction.y -= 1
+	} else if rl.IsKeyPressed(.K) && last_direction^ != .Down {
+		direction = {0, -1}
 		last_dir = .Up
-	}
-	if rl.IsKeyDown(.J) {
-		if last_direction^ == .Up {
-			return direction
-		}
-		direction.y += 1
+	} else if rl.IsKeyPressed(.J) && last_direction^ != .Up {
+		direction = {0, 1}
 		last_dir = .Down
 	}
 
 	return rl.Vector2Normalize(direction)
-}
-
-direction_to_string :: proc(dir: Direction) -> cstring {
-	switch dir {
-	case .None:
-		return "None"
-	case .Left:
-		return "Left"
-	case .Right:
-		return "Right"
-	case .Up:
-		return "Up"
-	case .Down:
-		return "Down"
-	}
-	return "Unknown"
 }
 
 wrap_check :: proc(position: ^rl.Vector2) {
@@ -122,10 +96,30 @@ wrap_check :: proc(position: ^rl.Vector2) {
 	}
 }
 
-move_on_tick :: proc() {
+check_food_collision :: proc(snake_pos: ^rl.Vector2, food_pos: ^rl.Vector2) {
+    snake_rect := rl.Rectangle{
+        x = snake_pos.x,
+        y = snake_pos.y,
+        width = 10,  // Assuming the snake block is 10x10
+        height = 10,
+    }
+    food_rect := rl.Rectangle{
+        x = food_pos.x,
+        y = food_pos.y,
+        width = 10,  // Assuming the food block is 10x10
+        height = 10,
+    }
 
+    if rl.CheckCollisionRecs(snake_rect, food_rect) {
+        current_score += 1
+        consume_food()
+    }
 }
 
-reset_game :: proc() {
+consume_food :: proc() {
+	food_exists = false  // This will cause a new food to spawn in the next frame
+}
+
+grow_snake :: proc() {
 
 }
