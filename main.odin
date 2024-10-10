@@ -22,7 +22,7 @@ main :: proc() {
 
 	pos := rl.Vector2{f32(rl.GetScreenWidth() / 2), f32(rl.GetScreenHeight() / 2)}
 
-	block_speed: f32 = 10
+	block_speed: f32 = 5
 
 	for !rl.WindowShouldClose() {
 		rl.ClearBackground(rl.BLACK)
@@ -30,7 +30,7 @@ main :: proc() {
 		time_str := fmt.tprintf("%.2f", rl.GetTime())
 		score := fmt.tprintf("Score: %d", current_score)
 
-		direction := get_input_direction()
+		direction := get_input_direction(&last_dir)
 		move_2d(&pos, direction, block_speed)
 		wrap_check(&pos)
 
@@ -59,22 +59,34 @@ move_2d :: proc(character_pos: ^rl.Vector2, direction: rl.Vector2, speed: f32) {
 	character_pos^ += direction * speed
 }
 
-get_input_direction :: proc() -> rl.Vector2 {
+get_input_direction :: proc(last_direction : ^Direction) -> rl.Vector2 {
 	direction := rl.Vector2{}
 
 	if rl.IsKeyDown(.H) {
+		if last_direction^ == .Right {
+			return direction
+		}
 		direction.x -= 1
 		last_dir = .Left
 	}
 	if rl.IsKeyDown(.L) {
+		if last_direction^ == .Left {
+			return direction
+		}
 		direction.x += 1
 		last_dir = .Right
 	}
 	if rl.IsKeyDown(.K) {
+		if last_direction^ == .Down {
+			return direction
+		}
 		direction.y -= 1
 		last_dir = .Up
 	}
 	if rl.IsKeyDown(.J) {
+		if last_direction^ == .Up {
+			return direction
+		}
 		direction.y += 1
 		last_dir = .Down
 	}
