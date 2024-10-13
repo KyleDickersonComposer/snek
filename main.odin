@@ -28,8 +28,8 @@ game_over: bool = false
 food: Food
 food_exists: bool = false
 snake: Snake
-block_size: f32 = 15
-block_speed: f32 = 5
+BLOCK_SIZE: f32 : 15.
+BLOCK_SPEED: f32 : 5.
 current_score := 0
 
 main :: proc() {
@@ -164,11 +164,11 @@ get_input_direction :: proc(last_direction: ^Direction) -> rl.Vector2 {
 wrap_check :: proc(position: ^rl.Vector2) {
 	if position.x < 0 {
 		position.x = f32(rl.GetScreenWidth())
-	} else if position.x > f32(rl.GetScreenWidth()) {
+	} else if position.x > f32(rl.GetScreenWidth() + block_size) {
 		position.x = 0
 	} else if position.y < 0 {
 		position.y = f32(rl.GetScreenHeight())
-	} else if position.y > f32(rl.GetScreenHeight()) {
+	} else if position.y > f32(rl.GetScreenHeight() + block_size) {
 		position.y = 0
 	}
 }
