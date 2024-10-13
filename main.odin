@@ -28,8 +28,8 @@ game_over: bool = false
 food: Food
 food_exists: bool = false
 snake: Snake
-BLOCK_SIZE: f32 : 15.
-BLOCK_SPEED: f32 : 5.
+BLOCK_SIZE :: 15
+BLOCK_SPEED :: 5
 current_score := 0
 
 main :: proc() {
@@ -86,7 +86,7 @@ update_game :: proc() {
 		snake.direction = new_direction
 	}
 
-	new_head := snake.body[0] + snake.direction * block_speed
+	new_head := snake.body[0] + snake.direction * BLOCK_SPEED
 	wrap_check(&new_head)
 
 	insert_at_front(&snake.body, new_head)
@@ -103,14 +103,14 @@ update_game :: proc() {
 }
 
 draw_game :: proc() {
-	rl.DrawRectangle(i32(food.pos.x), i32(food.pos.y), i32(block_size), i32(block_size), rl.WHITE)
+	rl.DrawRectangle(i32(food.pos.x), i32(food.pos.y), i32(BLOCK_SIZE), i32(BLOCK_SIZE), rl.WHITE)
 
 	for segment in snake.body {
 		rl.DrawRectangle(
 			i32(segment.x),
 			i32(segment.y),
-			i32(block_size),
-			i32(block_size),
+			i32(BLOCK_SIZE),
+			i32(BLOCK_SIZE),
 			rl.GREEN,
 		)
 	}
@@ -164,11 +164,11 @@ get_input_direction :: proc(last_direction: ^Direction) -> rl.Vector2 {
 wrap_check :: proc(position: ^rl.Vector2) {
 	if position.x < 0 {
 		position.x = f32(rl.GetScreenWidth())
-	} else if position.x > f32(rl.GetScreenWidth() + block_size) {
+	} else if position.x > f32(rl.GetScreenWidth()) {
 		position.x = 0
 	} else if position.y < 0 {
 		position.y = f32(rl.GetScreenHeight())
-	} else if position.y > f32(rl.GetScreenHeight() + block_size) {
+	} else if position.y > f32(rl.GetScreenHeight()) {
 		position.y = 0
 	}
 }
@@ -177,14 +177,14 @@ check_food_collision :: proc(snake_head: ^rl.Vector2, food_pos: ^rl.Vector2) {
 	snake_rect := rl.Rectangle {
 		x      = snake_head.x,
 		y      = snake_head.y,
-		width  = block_size,
-		height = block_size,
+		width  = BLOCK_SIZE,
+		height = BLOCK_SIZE,
 	}
 	food_rect := rl.Rectangle {
 		x      = food_pos.x,
 		y      = food_pos.y,
-		width  = block_size,
-		height = block_size,
+		width  = BLOCK_SIZE,
+		height = BLOCK_SIZE,
 	}
 
 	if rl.CheckCollisionRecs(snake_rect, food_rect) {
