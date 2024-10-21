@@ -33,7 +33,9 @@ BLOCK_SPEED :: 5
 current_score := 0
 
 main :: proc() {
-	rl.InitWindow(900, 700, "Snek")
+	rl.InitWindow(1280, 800, "Snek")
+	rl.ToggleFullscreen()
+	rl.HideCursor()
 	rl.SetTargetFPS(60)
 
 	init_snake()
