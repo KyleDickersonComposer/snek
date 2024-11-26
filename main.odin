@@ -34,7 +34,7 @@ current_score := 0
 
 main :: proc() {
 	rl.InitWindow(1280, 800, "Snek")
-	rl.ToggleFullscreen()
+	//rl.ToggleFullscreen()
 	rl.HideCursor()
 	rl.SetTargetFPS(60)
 
